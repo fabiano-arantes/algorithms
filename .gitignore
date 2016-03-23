@@ -1,0 +1,7 @@
+.cproject
+.project
+*.o
+*.dSYM
+cmake_install.cmake
+CMakeFiles
+*.class
