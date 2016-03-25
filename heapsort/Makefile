@@ -1,21 +1,22 @@
 CC=gcc
-INCLUDES=-I../util
-#CFLAGS=-c -Wall -Wextra -pedantic -g -ggdb -DDEBUG
-CFLAGS=-c -Wall -Wextra -ggdb
-LDFLAGS=
-SOURCES=heapsort.c testheapsort.c ../util/sortdata.c
+INC_DIR=-I ../util
+CFLAGS=-c -Wall -Wextra -Werror -g -ggdb -DDEBUG $(INC_DIR)
+OBJECTS=heapsort.o testheapsort.o ../util/sortdata.o
+DEPS=$(OBJECTS:.o=.d)
 EXECUTABLE=testheapsort
-OBJECTS=$(SOURCES:.c=.o)
 
-all: $(OBJECTS)  
+-include $(OBJS:.o=.d)
+
+all: $(OBJECTS)
 
 test: $(EXECUTABLE)
 
-$(EXECUTABLE): $(OBJECTS) 
-	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
+$(EXECUTABLE): $(OBJECTS)
+	$(CC) $(OBJECTS) -o $@
 
-.c.o:
+%.o: %.c
 	$(CC) $(INCLUDES) $(CFLAGS) $< -o $@
+	$(CC) -MM $(CFLAGS) $*.c > $*.d
 
 clean:
-	rm *.o $(EXECUTABLE) 
+	rm $(OBJECTS) $(DEPS) $(EXECUTABLE)
