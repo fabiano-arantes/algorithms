@@ -65,7 +65,7 @@ void* mem_put_value(sort_data* const h, const void* const value);
 
 void* mem_get_value(sort_data* const h, size_t index);
 
-void* mem_shrink(sort_data* const n);
+int mem_shrink(sort_data* const n);
 
 
 #endif //SORTDATA_H

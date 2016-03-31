@@ -1,7 +1,7 @@
 CC=gcc
 INC_DIR=-I ../util
-CFLAGS=-c -Wall -Wextra -Werror $(INC_DIR)
-#CFLAGS=-c -Wall -Wextra -Werror $(INC_DIR) -O0 -g -ggdb -DDEBUG
+#CFLAGS=-c -Wall -Wextra -Werror $(INC_DIR)
+CFLAGS=-c -Wall -Wextra -Werror $(INC_DIR) -O0 -g -ggdb #-DDEBUG
 OBJECTS=heapsort.o testheapsort.o ../util/sortdata.o
 DEPS=$(OBJECTS:.o=.d)
 EXECUTABLE=testheapsort

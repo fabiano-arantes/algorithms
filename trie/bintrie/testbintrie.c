@@ -74,7 +74,5 @@ int main()
 
     trie_clean(trie_root);
 
-    free(heap.mem);
-
     return 0;
 }

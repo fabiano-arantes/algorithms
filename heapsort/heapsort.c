@@ -115,7 +115,7 @@ void* heap_remove_top(sort_data* const h)
 
         exch(h, 0, h->size - 1);
 
-        if((mem_shrink(h) != NULL) && heap_sink(h))
+        if((mem_shrink(h)) && heap_sink(h))
         {
             return top;
         }

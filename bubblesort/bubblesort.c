@@ -47,14 +47,14 @@ void* bubble_remove_top(sort_data * const b)
 
     if (b->size == 0)
     {
-        MSG("Heap is empty");
+        MSG("array is empty");
         return NULL;
     }
 
     //get top value from memory
     if ((top = mem_get_value(b, b->size - 1)) != NULL)
     {
-        if (mem_shrink(b) != NULL)
+        if (mem_shrink(b))
         {
             return top;
         }

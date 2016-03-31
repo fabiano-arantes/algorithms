@@ -4,34 +4,46 @@
 
 #include <stdlib.h>
 
-void* mem_shrink(sort_data* const n)
+int mem_shrink(sort_data* const n)
 {
-    if (n->size == 0)
+    if (n->max_size == 0)
     {
-        MSG("heap is empty");
-        return NULL;
+        MSG("mem is empty");
+        return 0;
     }
 
-    //decrease one position
-    --n->size;
+    if (n->size > 0)
+    {
+        //decrease one position
+        --n->size;
+    }
 
-    if ((n->max_size > 1) && (n->size <= (n->max_size >> 2)))
+    if ((n->max_size > 0) && (n->size <= (n->max_size >> 2)))
     {
         n->max_size >>= 1;
-        n->mem = realloc(n->mem, n->max_size * sizeof(void*));
 
-        if (n->mem == NULL)
+        if ((n->size > 0) && (n->max_size > 0))
         {
-            MSG("Error on reallocate memory");
+            n->mem = realloc(n->mem, n->max_size * sizeof(void*));
 
-            n->max_size = 0;
-            n->size = 0;
+            if (n->mem == NULL)
+            {
+                MSG("Error on reallocate memory");
 
-            return NULL;
+                n->max_size = 0;
+                n->size = 0;
+
+                return 0;
+            }
+        }
+        else
+        {
+            free(n->mem);
+            n->mem = NULL;
         }
     }
 
-    return n->mem + (n->size * sizeof(void*));
+    return 1;
 }
 
 void* mem_get_value(sort_data* const h, size_t index)
@@ -62,7 +74,7 @@ static void* mem_get_free_slot(sort_data* const h)
     //check if mem was allocated
     if (h->mem == NULL)
     {
-        h->mem = malloc(sizeof(void*));
+        h->mem = malloc(sizeof(void*) << 1);
         if (h->mem == NULL)
         {
             MSG("mem is NULL");
@@ -70,7 +82,7 @@ static void* mem_get_free_slot(sort_data* const h)
         }
 
         h->size = 0;
-        h->max_size = 1;
+        h->max_size = 2;
     }
     else if (h->size == h->max_size) //time to increase available memory
     {

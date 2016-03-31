@@ -73,7 +73,5 @@ int main(int argc, char **argv)
 
     fclose(f);
 
-    free(sorted_values.mem);
-
     return 0;
 }

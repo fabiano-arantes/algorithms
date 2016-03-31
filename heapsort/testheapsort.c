@@ -48,7 +48,5 @@ int main()
     heap.cmp_func = desc_cmp_int;
     test(sorted_max_values, size);
 
-    free(heap.mem);
-
     return 0;
 }

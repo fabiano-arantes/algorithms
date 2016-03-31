@@ -54,7 +54,5 @@ int main()
     bubble.cmp_func = desc_cmp_int;
     test(sorted_max_values, size);
 
-    free(bubble.mem);
-
     return 0;
 }
