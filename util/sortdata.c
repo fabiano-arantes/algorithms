@@ -18,11 +18,11 @@ void* mem_shrink(sort_data* const n)
     if ((n->max_size > 1) && (n->size <= (n->max_size >> 2)))
     {
         n->max_size >>= 1;
-        n->mem = realloc(n->mem, n->max_size * n->type_size);
+        n->mem = realloc(n->mem, n->max_size * sizeof(void*));
 
         if (n->mem == NULL)
         {
-            MSG("Error on realloc array");
+            MSG("Error on reallocate memory");
 
             n->max_size = 0;
             n->size = 0;
@@ -31,10 +31,10 @@ void* mem_shrink(sort_data* const n)
         }
     }
 
-    return n->mem + (n->size * n->type_size);
+    return n->mem + (n->size * sizeof(void*));
 }
 
-int mem_get_value(sort_data* const h, size_t index, void* const value)
+void* mem_get_value(sort_data* const h, size_t index)
 {
     if (h == NULL)
     {
@@ -48,33 +48,21 @@ int mem_get_value(sort_data* const h, size_t index, void* const value)
         return 0;
     }
 
-    if (h->type_size == 0)
-    {
-        MSG("type_size is zero");
-        return 0;
-    }
-
-    if (value == 0)
-    {
-        MSG("return pointer is NULL");
-        return 0;
-    }
-
-    return (memcpy(value, h->mem + (index * h->type_size), h->type_size) ? 1 : 0);
+    return get_obj_address(h, index);
 }
 
 static void* mem_get_free_slot(sort_data* const h)
 {
-    if (h->type_size == 0)
+    if (h == NULL)
     {
-        MSG("Type size null");
+        MSG("h is null");
         return NULL;
     }
 
     //check if mem was allocated
     if (h->mem == NULL)
     {
-        h->mem = malloc(h->type_size);
+        h->mem = malloc(sizeof(void*));
         if (h->mem == NULL)
         {
             MSG("mem is NULL");
@@ -88,7 +76,7 @@ static void* mem_get_free_slot(sort_data* const h)
     {
         h->max_size <<= 1;
 
-        h->mem = realloc(h->mem, h->max_size * h->type_size);
+        h->mem = realloc(h->mem, h->max_size * sizeof(void*));
         if (h->mem == NULL)
         {
             MSG("mem is NULL");
@@ -96,7 +84,7 @@ static void* mem_get_free_slot(sort_data* const h)
         }
     }
 
-    return h->mem + (h->size++ * h->type_size);
+    return h->mem + (h->size++ * sizeof(void*));
 }
 
 void* mem_put_value(sort_data* const h, const void* const value)
@@ -111,8 +99,7 @@ void* mem_put_value(sort_data* const h, const void* const value)
         return 0;
     }
 
-    //copy new value to new slot
-    memcpy(mem, value, h->type_size);
+    memcpy(mem, &value, sizeof(void*));
 
     return mem;
 }

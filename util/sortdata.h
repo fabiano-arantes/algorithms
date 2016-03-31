@@ -1,6 +1,8 @@
 #ifndef SORTDATA_H
 #define SORTDATA_H
 
+#include <debug.h>
+
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,27 +10,37 @@
 typedef struct sort_data_
 {
 	void *mem;
-	size_t type_size;
 	size_t size;
 	size_t max_size;
-	int (*cmp_func)(const struct sort_data_* const, int, int);
+	int (*cmp_func)(const void* const, const void* const);
 }sort_data;
 
 static inline void exch (sort_data *n, size_t i, size_t j)
 {
-    void *aux = malloc(n->type_size);
-    memcpy(aux, n->mem + i * n->type_size, n->type_size);
-    memcpy(n->mem + i * n->type_size, n->mem + j * n->type_size, n->type_size);
-    memcpy(n->mem + j * n->type_size, aux, n->type_size);
+    void *aux = malloc(sizeof(void*));
+    memcpy(aux, n->mem + i * sizeof(void*), sizeof(void*));
+    memcpy(n->mem + i * sizeof(void*), n->mem + j * sizeof(void*), sizeof(void*));
+    memcpy(n->mem + j * sizeof(void*), aux, sizeof(void*));
     free(aux);
 }
 
-static inline int asc_cmp_int(const sort_data* const n, int a, int b)
+static inline void* get_obj_address(const sort_data* const n, int a)
 {
-    a = *((int *)(n->mem) + a);
-    b = *((int *)(n->mem) + b);
+    void *addr = n->mem + a * sizeof(void*);
 
-    if (a < b)
+    addr = (void *)*(typeof(void*)*)(addr);
+
+    MSG_ARG("Object address = %p", addr);
+
+    return addr;
+}
+
+static inline int asc_cmp_int(const void* const pv1, const void* const pv2)
+{
+    int v1 = *((int *)(pv1));
+    int v2 = *((int *)(pv2));
+
+    if (v1 < v2)
     {
         return 1;
     }
@@ -36,12 +48,12 @@ static inline int asc_cmp_int(const sort_data* const n, int a, int b)
     return 0;
 }
 
-static inline int desc_cmp_int(const sort_data* const n, int a, int b)
+static inline int desc_cmp_int(const void* const pv1, const void* const pv2)
 {
-    a = *((int *)(n->mem) + a);
-    b = *((int *)(n->mem) + b);
+    int v1 = *((int *)(pv1));
+    int v2 = *((int *)(pv2));
 
-    if (a > b)
+    if (v1 > v2)
     {
         return 1;
     }
@@ -51,7 +63,7 @@ static inline int desc_cmp_int(const sort_data* const n, int a, int b)
 
 void* mem_put_value(sort_data* const h, const void* const value);
 
-int mem_get_value(sort_data* const h, size_t index, void* const value);
+void* mem_get_value(sort_data* const h, size_t index);
 
 void* mem_shrink(sort_data* const n);
 

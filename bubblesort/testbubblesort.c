@@ -15,7 +15,7 @@ void test(int base_array[], size_t size)
 {
     //get array size
     size_t i;
-    int v;
+    int* v;
 
     //fill array
     for (i = 0; i < size; ++i)
@@ -30,11 +30,11 @@ void test(int base_array[], size_t size)
     //pop values
     for (i = 0; i < size; ++i)
     {
-        bubble_remove_top(&bubble, &v);
-        if (v != base_array[i])
+        if (((v = bubble_remove_top(&bubble)) != NULL) && (*v != base_array[i]))
         {
-            printf("(%zu) value: %d, expected: %d\n", i, v, base_array[i]);
+            printf("(%zu) value: %d, expected: %d\n", i, *v, base_array[i]);
         }
+        MSG_ARG("(%zu) value %d was popped", i, *v);
     }
 }
 
@@ -45,8 +45,6 @@ int main()
 
     //set all to 0
     memset(&bubble, 0, sizeof(sort_data));
-
-    bubble.type_size = sizeof(*values);
 
     //test ascending
     bubble.cmp_func = asc_cmp_int;

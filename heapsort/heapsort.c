@@ -8,6 +8,8 @@
 
 static int heap_sink(sort_data *h)
 {
+    MSG("Sinking heap");
+
     if (h == NULL)
     {
         MSG("h NULL pointer");
@@ -22,12 +24,12 @@ static int heap_sink(sort_data *h)
     {
         c = p << 1;
 
-        if (((c + 1) <= h->size) && (h->cmp_func(h, c - 1, c) == 0))
+        if (((c + 1) <= h->size) && (h->cmp_func(get_obj_address(h, c - 1), get_obj_address(h, c)) == 0))
         {
             ++c;
         }
 
-        if(h->cmp_func(h, p - 1, c - 1) == 0)
+        if(h->cmp_func(get_obj_address(h, p - 1), get_obj_address(h, c - 1)) == 0)
         {
             exch(h, p - 1, c - 1);
         }
@@ -44,6 +46,8 @@ static int heap_sink(sort_data *h)
 
 static void heap_swim(sort_data* const h)
 {
+    MSG("Swimming heap");
+
     size_t c = h->size; //child index
     size_t p; //parent index
 
@@ -53,7 +57,7 @@ static void heap_swim(sort_data* const h)
         p = c >> 1;
 
         //check if values positions are valid
-        if (h->cmp_func(h, p - 1, c - 1))
+        if (h->cmp_func(get_obj_address(h, p - 1), get_obj_address(h, c - 1)))
         {
             //valid positions
             break;
@@ -69,9 +73,17 @@ static void heap_swim(sort_data* const h)
 
 int heap_put(sort_data* const h, const void * const value)
 {
+    MSG("Putting new value in heap");
+
     if (h == NULL)
     {
         MSG("h NULL pointer");
+        return 0;
+    }
+
+    if (h->cmp_func == NULL)
+    {
+        MSG("Comparison function not set");
         return 0;
     }
 
@@ -84,19 +96,34 @@ int heap_put(sort_data* const h, const void * const value)
     return h->size;
 }
 
-int heap_remove_top(sort_data* const h, void* const top)
+void* heap_remove_top(sort_data* const h)
 {
-    //get top value from memory
-    if (mem_get_value(h, 0, top))
-    {
-        exch(h, 0, h->size - 1);
+    void* top;
 
-        if(mem_shrink(h))
-        {
-            //apply sink
-            return heap_sink(h);
-        }
+    MSG("Removing top from heap");
+
+    if (h->size == 0)
+    {
+        MSG("Heap is empty");
+        return NULL;
     }
 
-    return 0;
+    //get top value from memory
+    if ((top = mem_get_value(h, 0)) != NULL)
+    {
+        MSG_ARG("Top object popped: [%p]", top);
+
+        exch(h, 0, h->size - 1);
+
+        if((mem_shrink(h) != NULL) && heap_sink(h))
+        {
+            return top;
+        }
+
+        MSG("mem_shrink or heap_sink failed");
+    }
+
+    MSG("heap_remove_top failed");
+
+    return NULL;
 }

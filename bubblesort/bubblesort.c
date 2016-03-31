@@ -12,6 +12,12 @@ int bubble_put(sort_data * const b, const void* const value)
         return 0;
     }
 
+    if (b->cmp_func == NULL)
+    {
+        MSG("Comparison function not set");
+        return 0;
+    }
+
     //put new value at last position of array
     if (mem_put_value(b, value) == NULL)
     {
@@ -19,9 +25,10 @@ int bubble_put(sort_data * const b, const void* const value)
         return 0;
     }
 
+    //sort new value
     for (unsigned int i = b->size - 1; i > 0; --i)
     {
-        if (b->cmp_func(b, i, i - 1) == 0)
+        if (b->cmp_func(get_obj_address(b, i), get_obj_address(b, i - 1)) == 0)
         {
             exch(b, i, i - 1);
         }
@@ -34,13 +41,24 @@ int bubble_put(sort_data * const b, const void* const value)
     return b->size;
 }
 
-int bubble_remove_top(sort_data * const b, void* const top)
+void* bubble_remove_top(sort_data * const b)
 {
-    //get top value from memory
-    if (mem_get_value(b, b->size - 1, top))
+    void* top;
+
+    if (b->size == 0)
     {
-        return (mem_shrink(b) != NULL);
+        MSG("Heap is empty");
+        return NULL;
     }
 
-    return 0;
+    //get top value from memory
+    if ((top = mem_get_value(b, b->size - 1)) != NULL)
+    {
+        if (mem_shrink(b) != NULL)
+        {
+            return top;
+        }
+    }
+
+    return NULL;
 }

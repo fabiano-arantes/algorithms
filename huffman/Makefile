@@ -1,11 +1,23 @@
 CC=gcc
-CFLAGS=-Wall -Wextra -pedantic -ggdb3
+INC_DIR=-I ../util -I ../heapsort/ -I ../trie/bintrie/
+CFLAGS=-c -Wall -Wextra -Werror $(INC_DIR)
+#CFLAGS=-c -Wall -Wextra -Werror $(INC_DIR) -O0 -g -ggdb -DDEBUG
+OBJECTS=huffman.o ../heapsort/heapsort.o ../trie/bintrie/bintrie.o ../util/sortdata.o
+DEPS=$(OBJECTS:.o=.d)
+EXECUTABLE=testhuffman
 
-all: huffman.o
-	$(CC) $< -o huffman
+-include $(OBJS:.o=.d)
+
+all: $(OBJECTS)
+
+test: $(EXECUTABLE)
+
+$(EXECUTABLE): $(OBJECTS)
+	$(CC) $(OBJECTS) -o $@
 
 %.o: %.c
-	$(CC) $(CFLAGS) -c $<
+	$(CC) -MM $(CFLAGS) $*.c > $*.d
+	$(CC) $(INCLUDES) $(CFLAGS) $< -o $@
 
 clean:
-	rm -r *.o huffman *.dSYM
+	rm $(OBJECTS) $(DEPS) $(EXECUTABLE)

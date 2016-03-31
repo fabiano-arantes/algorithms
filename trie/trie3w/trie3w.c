@@ -78,6 +78,7 @@ static void trie_clean_(trie_3w_node* n)
     trie_clean_(n->mid);
     trie_clean_(n->right);
 
+    free(n->value);
     free(n);
 }
 

@@ -1,8 +1,6 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-
 #include "heapsort.h"
+
+#include <debug.h>
 
 static sort_data heap;
 static int values[] = {5, 2, 4, 3, 1, 0, 7};
@@ -13,9 +11,7 @@ void test(int base_array[], size_t size)
 {
     //get array size
     size_t i;
-    int top;
-
-    heap.type_size = sizeof(int);
+    int *top;
 
     //fill array
     for (i = 0; i < size; ++i)
@@ -26,10 +22,11 @@ void test(int base_array[], size_t size)
     //pop values
     for (i = 0; i < size; ++i)
     {
-        if((heap_remove_top(&heap, &top) == 0) || (top != base_array[i]))
+        if(((top = heap_remove_top(&heap)) == NULL) || (*top != base_array[i]))
         {
-            printf("(%zu) value: %d, expected: %d\n", i + 1, top, base_array[i]);
+            printf("(%zu) value: %d, expected: %d\n", i + 1, *top, base_array[i]);
         }
+        MSG_ARG("(%zu) value %d was popped", i, *top);
     }
 }
 
@@ -42,10 +39,12 @@ int main()
     memset(&heap, 0, sizeof(sort_data));
 
     //test ascending
+    MSG("Testing ascending sort");
     heap.cmp_func = asc_cmp_int;
     test(sorted_min_values, size);
 
     //test descending
+    MSG("Testing descending sort");
     heap.cmp_func = desc_cmp_int;
     test(sorted_max_values, size);
 
