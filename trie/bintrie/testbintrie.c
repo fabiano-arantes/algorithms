@@ -12,14 +12,17 @@ typedef struct
 
 int main()
 {
-    test_data_input tdi[] = {{'a', 45}, {'b', 13}, {'c', 12}, {'d', 16}, {'e', 9}, {'f', 5}};
-    bin_trie_input ti[] = {{0b0, 1}, {0b101, 3}, {0b100, 3}, {0b111, 3}, {0b1101, 4}, {0b1100, 4}};
+    test_data_input tdi[] = { {'a', 45}, {'b', 13}, {'c', 12}, {'d', 16}, {'e',
+            9}, {'f', 5}};
+    bin_trie_input ti[] = { {0b0, 1}, {0b101, 3}, {0b100, 3}, {0b111, 3}, {
+            0b1101, 4}, {0b1100, 4}};
 
     size_t size_tdi = sizeof(tdi) / sizeof(*tdi);
     size_t size_ti = sizeof(ti) / sizeof(*ti);
     size_t i;
     bin_trie_node *node1, *node2;
     bin_trie_node *trie_root;
+    bin_trie_st st[UCHAR_MAX + 1];
     sort_data heap;
 
     memset(&heap, 0, sizeof(sort_data));
@@ -48,21 +51,24 @@ int main()
 
     trie_root = node1;
 
-/*    bin_trie_st *st = trie_symbol_table(trie_root);
+    trie_symbol_table(trie_root, st);
 
-    do
+    //printf("c = '%c', bits = ", st->c);
+
+    //for (i = st->bits_count; i--;)
+    //{
+    //    printf("%d", (st->bits >> i) & 1);
+    //}
+
+    //printf("\n");
+
+    for (i = 0; i < size_ti; ++i)
     {
-        printf("c = '%c', bits = ", st->c);
-
-        for (i = st->bits_count; i--;)
+        if ((st[tdi[i].c].bits_count == 0) || (st[tdi[i].c].bits != ti[i].bits))
         {
-            printf("%d", (st->bits >> i) & 1);
+            printf("Test error. Bits are different from expected value for %c\n", tdi[i].c);
         }
-
-        printf("\n");
-
-    }while ((st = st->next) != NULL);
-*/
+    }
 
     for (i = 0; i < size_ti; ++i)
     {

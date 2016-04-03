@@ -3,11 +3,12 @@
 
 #include <debug.h>
 
+#include <limits.h>
 #include <stdlib.h>
 
 typedef struct bin_trie_node_
 {
-    char c;
+    unsigned char c;
     size_t freq;
     struct bin_trie_node_ *childs[2];
 } bin_trie_node;
@@ -23,7 +24,6 @@ typedef struct bin_trie_st_
     char c;
     unsigned char bits;
     unsigned char bits_count;
-    struct bin_trie_st_* next;
 } bin_trie_st;
 
 static inline int asc_cmp_trie_freq(const void* const v1, const void* const v2)
@@ -65,7 +65,11 @@ void trie_clean(bin_trie_node* const root);
 
 char trie_find(const bin_trie_node* const n, bin_trie_input* const i);
 
-bin_trie_st* trie_symbol_table(const bin_trie_node* const n);
+int trie_symbol_table(const bin_trie_node* const n, bin_trie_st st[UCHAR_MAX + 1]);
+
+void print_symbol_table(bin_trie_st st[UCHAR_MAX]);
+
+bin_trie_node* read_bin_trie(const unsigned char** buffer);
 
 
 #endif //BIN_TRIE_H
