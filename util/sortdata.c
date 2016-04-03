@@ -40,6 +40,7 @@ int mem_shrink(sort_data* const n)
         {
             free(n->mem);
             n->mem = NULL;
+            n->max_size = 0;
         }
     }
 

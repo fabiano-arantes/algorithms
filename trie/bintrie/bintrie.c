@@ -63,49 +63,116 @@ char trie_find(const bin_trie_node* const trie, bin_trie_input* const i)
 }
 
 
-static bin_trie_st* trie_symbol_table_(const bin_trie_node* const n, unsigned char bits, unsigned char bits_count)
+static int trie_symbol_table_(const bin_trie_node* const n, bin_trie_st st[UCHAR_MAX + 1], unsigned char bits, unsigned char bits_count)
 {
     if (n == NULL)
     {
         MSG("n is NULL");
-        return NULL;
+        return 0;
     }
 
-    bin_trie_st *node, *next;
+    static unsigned long depth = 0;
+    static unsigned long max_depth = 0;
+
+    ++depth;
+
+    if (depth > max_depth)
+    {
+        max_depth = depth;
+    }
 
     if ((n->childs[0] == NULL) && (n->childs[1] == NULL))
     {
-        MSG_ARG("creating symbol table node: c = %c, bits = %d, bit_count = %d", n->c, bits, bits_count);
-        node = malloc(sizeof(bin_trie_st));
-        node->c = n->c;
-        node->bits = bits;
-        node->bits_count = bits_count;
-        node->next = NULL;
+        unsigned char char_bits[17];
 
-        return node;
+        int_to_bits(bits, bits_count, char_bits);
+
+        MSG_ARG("creating symbol table node: c = '%c', bits = %s, bit_count = %d", n->c, char_bits, bits_count);
+
+        st[(size_t)n->c].c = n->c;
+        st[(size_t)n->c].bits = bits;
+        st[(size_t)n->c].bits_count = bits_count;
+
+        --depth;
+
+        return 1;
     }
 
-    node = trie_symbol_table_(n->childs[0], (bits << 1), bits_count + 1);
+    trie_symbol_table_(n->childs[0], st, (bits << 1), bits_count + 1);
 
-    next = node;
+    trie_symbol_table_(n->childs[1], st, (bits << 1) | 1, bits_count + 1);
 
-    while (next->next != NULL)
-    {
-        next = next->next;
-    }
+    --depth;
 
-    next->next = trie_symbol_table_(n->childs[1], (bits << 1) | 1, bits_count + 1);
-
-    return node;
+    return 1;
 }
 
-bin_trie_st* trie_symbol_table(const bin_trie_node* const trie)
+int trie_symbol_table(const bin_trie_node* const trie, bin_trie_st st[UCHAR_MAX])
 {
     if (trie == NULL)
     {
         MSG("trie is NULL");
-        return NULL;
+        return 0;
     }
 
-    return trie_symbol_table_(trie, 0, 0);
+    return trie_symbol_table_(trie, st, 0, 0);
+}
+
+void print_symbol_table(bin_trie_st st[UCHAR_MAX])
+{
+    size_t i = UCHAR_MAX;
+    short bits_count;
+    unsigned char bits[17];
+
+    while (i--)
+    {
+        if (st[i].bits_count == 0)
+        {
+            continue;
+        }
+
+        bits_count = st[i].bits_count;
+
+        int_to_bits(st[i].bits, st[i].bits_count, bits);
+
+        MSG_ARG("c = '%c', bits_count = %d, bits = %s", st[i].c, st[i].bits_count, bits);
+    }
+}
+
+bin_trie_node* read_bin_trie(const unsigned char** buffer)
+{
+    static size_t bits_count = 0;
+    static unsigned short total_bits = sizeof(**buffer) << 3;
+
+    ++bits_count;
+
+    if (**buffer & (1 << (total_bits - bits_count)))
+    {
+        char c = 0 | (**buffer << bits_count);
+
+        ++(*buffer);
+
+        c |= (**buffer >> (total_bits - bits_count));
+
+        if (bits_count == total_bits)
+        {
+            bits_count = 0;
+            ++(*buffer);
+        }
+
+        MSG_ARG("Bin trie node found: c = %c", c);
+
+        return trie_new_node(c, 0, NULL, NULL);
+    }
+
+    bin_trie_node *left = read_bin_trie(buffer);
+    bin_trie_node *right = read_bin_trie(buffer);
+
+    if (bits_count == total_bits)
+    {
+        bits_count = 0;
+        ++(*buffer);
+    }
+
+    return trie_new_node('\0', 0, left, right);
 }

@@ -67,5 +67,6 @@ void* mem_get_value(sort_data* const h, size_t index);
 
 int mem_shrink(sort_data* const n);
 
+//size_t write_bits_in_buffer(void** const buffer, size_t pos, char bits, unsigned char count_bits);
 
 #endif //SORTDATA_H

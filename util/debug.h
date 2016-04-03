@@ -1,3 +1,6 @@
+#ifndef DEBUG_H
+#define DEBUG_H
+
 #include <stdio.h>
 #include <string.h>
 
@@ -10,3 +13,16 @@
     #define MSG(x)
     #define MSG_ARG(x, ...)
 #endif
+
+static inline void int_to_bits(int v, unsigned char bits_count, unsigned char bits[17])
+{
+    size_t i = 0;
+
+    while (bits_count--)
+    {
+        bits[i++] = ((1 << bits_count) & v ? '1' : '0');
+    }
+    bits[i] = 0;
+}
+
+#endif //DEBUG_H
