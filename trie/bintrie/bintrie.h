@@ -2,6 +2,7 @@
 #define BIN_TRIE_H
 
 #include <debug.h>
+#include <mem.h>
 
 #include <limits.h>
 #include <stdlib.h>
@@ -69,7 +70,7 @@ int trie_symbol_table(const bin_trie_node* const n, bin_trie_st st[UCHAR_MAX + 1
 
 void print_symbol_table(bin_trie_st st[UCHAR_MAX]);
 
-bin_trie_node* read_bin_trie(const unsigned char** buffer);
+bin_trie_node* read_bin_trie(mem* const buffer);
 
 
 #endif //BIN_TRIE_H

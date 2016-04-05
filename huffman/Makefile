@@ -2,7 +2,7 @@ CC=gcc
 INC_DIR=-I ../util -I ../heapsort/ -I ../trie/bintrie/
 #CFLAGS=-c -Wall -Wextra -Werror $(INC_DIR)
 CFLAGS=-c -Wall -Wextra -Werror $(INC_DIR) -O0 -g -ggdb -DDEBUG
-OBJECTS=huffman.o ../heapsort/heapsort.o ../trie/bintrie/bintrie.o ../util/sortdata.o
+OBJECTS=huffman.o ../heapsort/heapsort.o ../trie/bintrie/bintrie.o ../util/mem.o
 DEPS=$(OBJECTS:.o=.d)
 EXECUTABLE=testhuffman
 
@@ -20,4 +20,4 @@ $(EXECUTABLE): $(OBJECTS)
 	$(CC) $(INCLUDES) $(CFLAGS) $< -o $@
 
 clean:
-	rm $(OBJECTS) $(DEPS) $(EXECUTABLE)
+	rm -r $(OBJECTS) $(DEPS) $(EXECUTABLE) $(EXECUTABLE).dSYM
