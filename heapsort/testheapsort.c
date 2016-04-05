@@ -24,7 +24,7 @@ void test(int base_array[], size_t size)
     {
         if(((top = heap_remove_top(&heap)) == NULL) || (*top != base_array[i]))
         {
-            printf("(%zu) value: %d, expected: %d\n", i + 1, *top, base_array[i]);
+            printf("(%zu/%zu) value: %d, expected: %d\n", i + 1, size, *top, base_array[i]);
         }
         MSG_ARG("(%zu) value %d was popped", i, *top);
     }
@@ -43,10 +43,19 @@ int main()
     heap.cmp_func = asc_cmp_int;
     test(sorted_min_values, size);
 
+    free(heap.mem.mem);
+    heap.mem.mem = NULL;
+    memset(&heap, 0, sizeof(sort_data));
+
     //test descending
     MSG("Testing descending sort");
     heap.cmp_func = desc_cmp_int;
     test(sorted_max_values, size);
+
+    free(heap.mem.mem);
+    heap.mem.mem = NULL;
+    memset(&heap, 0, sizeof(sort_data));
+
 
     return 0;
 }

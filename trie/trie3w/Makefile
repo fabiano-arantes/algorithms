@@ -19,4 +19,4 @@ $(EXECUTABLE): $(OBJECTS)
 	$(CC) -MM $(CFLAGS) $*.c > $*.d
 
 clean:
-	rm $(OBJECTS) $(DEPS) $(EXECUTABLE)
+	rm -r $(OBJECTS) $(DEPS) $(EXECUTABLE) $(EXECUTABLE).dSYM

@@ -121,7 +121,6 @@ int trie_symbol_table(const bin_trie_node* const trie, bin_trie_st st[UCHAR_MAX]
 void print_symbol_table(bin_trie_st st[UCHAR_MAX])
 {
     size_t i = UCHAR_MAX;
-    short bits_count;
     unsigned char bits[17];
 
     while (i--)
@@ -131,34 +130,20 @@ void print_symbol_table(bin_trie_st st[UCHAR_MAX])
             continue;
         }
 
-        bits_count = st[i].bits_count;
-
         int_to_bits(st[i].bits, st[i].bits_count, bits);
 
         MSG_ARG("c = '%c', bits_count = %d, bits = %s", st[i].c, st[i].bits_count, bits);
     }
 }
 
-bin_trie_node* read_bin_trie(const unsigned char** buffer)
+bin_trie_node* read_bin_trie(mem* const buffer)
 {
-    static size_t bits_count = 0;
-    static unsigned short total_bits = sizeof(**buffer) << 3;
+    unsigned char c;
+    bit_t b;
 
-    ++bits_count;
-
-    if (**buffer & (1 << (total_bits - bits_count)))
+    if (MEM_GET_NEXT_BIT(buffer, &b) && (b == BIT_1))
     {
-        char c = 0 | (**buffer << bits_count);
-
-        ++(*buffer);
-
-        c |= (**buffer >> (total_bits - bits_count));
-
-        if (bits_count == total_bits)
-        {
-            bits_count = 0;
-            ++(*buffer);
-        }
+        MEM_GET_NEXT_VALUE(buffer, &c);
 
         MSG_ARG("Bin trie node found: c = %c", c);
 
@@ -167,12 +152,6 @@ bin_trie_node* read_bin_trie(const unsigned char** buffer)
 
     bin_trie_node *left = read_bin_trie(buffer);
     bin_trie_node *right = read_bin_trie(buffer);
-
-    if (bits_count == total_bits)
-    {
-        bits_count = 0;
-        ++(*buffer);
-    }
 
     return trie_new_node('\0', 0, left, right);
 }

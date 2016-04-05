@@ -20,7 +20,7 @@ void test(int base_array[], size_t size)
     //fill array
     for (i = 0; i < size; ++i)
     {
-        if (bubble_put(&bubble, &values[i]) == 0)
+        if (bubble_append(&bubble, &values[i]) == 0)
         {
             MSG_ARG("Error on insert value = %d", values[i]);
             return;

@@ -2,7 +2,7 @@ CC=gcc
 INC_DIR=-I ../util
 #CFLAGS=-c -Wall -Wextra -Werror $(INC_DIR)
 CFLAGS=-c -Wall -Wextra -Werror $(INC_DIR) -O0 -g -ggdb #-DDEBUG
-OBJECTS=bubblesort.o testbubblesort.o ../util/sortdata.o
+OBJECTS=bubblesort.o testbubblesort.o ../util/mem.o
 DEPS=$(OBJECTS:.o=.d)
 EXECUTABLE=testbubblesort
 
@@ -20,4 +20,4 @@ $(EXECUTABLE): $(OBJECTS)
 	$(CC) $(INCLUDES) $(CFLAGS) $< -o $@
 
 clean:
-	rm $(OBJECTS) $(DEPS) $(EXECUTABLE)
+	rm -r $(OBJECTS) $(DEPS) $(EXECUTABLE) $(EXECUTABLE).dSYM

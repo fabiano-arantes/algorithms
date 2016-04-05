@@ -4,7 +4,7 @@
 
 #include <stdlib.h>
 
-int bubble_put(sort_data * const b, const void* const value)
+int bubble_append(sort_data * const b, const void* const value)
 {
     if (b == NULL)
     {
@@ -19,18 +19,24 @@ int bubble_put(sort_data * const b, const void* const value)
     }
 
     //put new value at last position of array
-    if (mem_put_value(b, value) == NULL)
+    if (mem_append_value(&b->mem, &value, sizeof(void*)) == NULL)
     {
         MSG("Error on put new value");
         return 0;
     }
 
+    void * v1;
+    void * v2;
+
     //sort new value
-    for (unsigned int i = b->size - 1; i > 0; --i)
+    for (size_t i = mem_size(&b->mem) - 1; i > 0; --i)
     {
-        if (b->cmp_func(get_obj_address(b, i), get_obj_address(b, i - 1)) == 0)
+        v1 = *(void **)mem_get_obj_address(&b->mem, i, sizeof(void *));
+        v2 = *(void **)mem_get_obj_address(&b->mem, i - 1, sizeof(void *));
+
+        if (b->cmp_func(v1, v2) == 0)
         {
-            exch(b, i, i - 1);
+            mem_exch(&b->mem, i, i - 1);
         }
         else
         {
@@ -38,23 +44,23 @@ int bubble_put(sort_data * const b, const void* const value)
         }
     }
 
-    return b->size;
+    return mem_size(&b->mem);
 }
 
 void* bubble_remove_top(sort_data * const b)
 {
     void* top;
 
-    if (b->size == 0)
+    if (mem_size(&b->mem) == 0)
     {
         MSG("array is empty");
         return NULL;
     }
 
     //get top value from memory
-    if ((top = mem_get_value(b, b->size - 1)) != NULL)
+    if ((top = mem_get_value(&b->mem, mem_size(&b->mem) - 1)) != NULL)
     {
-        if (mem_shrink(b))
+        if (mem_shrink(&b->mem))
         {
             return top;
         }
