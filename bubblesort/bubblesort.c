@@ -4,7 +4,7 @@
 
 #include <stdlib.h>
 
-int bubble_append(sort_data * const b, const void* const value)
+int bubble_append(sort_data * const b, void* const value)
 {
     if (b == NULL)
     {
@@ -18,21 +18,21 @@ int bubble_append(sort_data * const b, const void* const value)
         return 0;
     }
 
-    //put new value at last position of array
-    if (mem_append_value(&b->mem, &value, sizeof(void*)) == NULL)
-    {
-        MSG("Error on put new value");
-        return 0;
-    }
+    pointer_t p = {value};
 
-    void * v1;
-    void * v2;
+    //put new value at last position of array
+    MEM_APPEND_VALUE(&b->mem, &p);
+
+    ++b->size;
 
     //sort new value
-    for (size_t i = mem_size(&b->mem) - 1; i > 0; --i)
+    for (size_t i = b->size - 1; i > 0; --i)
     {
-        v1 = *(void **)mem_get_obj_address(&b->mem, i, sizeof(void *));
-        v2 = *(void **)mem_get_obj_address(&b->mem, i - 1, sizeof(void *));
+        size_t sizeof_pointer = sizeof(pointer_t) << 3;
+        pointer_t *p1 = mem_get_value_address(&b->mem, i * sizeof_pointer, sizeof_pointer);
+        pointer_t *p2 = mem_get_value_address(&b->mem, (i - 1) * sizeof_pointer, sizeof_pointer);
+        const void* v1 = p1->pointer;
+        const void* v2 = p2->pointer;
 
         if (b->cmp_func(v1, v2) == 0)
         {
@@ -44,25 +44,29 @@ int bubble_append(sort_data * const b, const void* const value)
         }
     }
 
-    return mem_size(&b->mem);
+    return b->size;
 }
 
 void* bubble_remove_top(sort_data * const b)
 {
-    void* top;
+    void* ptop;
 
-    if (mem_size(&b->mem) == 0)
+    if (b->size == 0)
     {
         MSG("array is empty");
         return NULL;
     }
 
+    mem_seek(&b->mem, SEEK_READ_END);
+
     //get top value from memory
-    if ((top = mem_get_value(&b->mem, mem_size(&b->mem) - 1)) != NULL)
+    if (MEM_GET_NEXT_VALUE(&b->mem, &ptop))
     {
-        if (mem_shrink(&b->mem))
+        --b->size;
+
+        if (mem_shrink(&b->mem, sizeof(void *) << 3))
         {
-            return top;
+            return ptop;
         }
     }
 

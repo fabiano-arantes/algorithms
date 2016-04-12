@@ -29,6 +29,7 @@ static void write_trie_buffer(mem* buffer, const bin_trie_node* const node)
 static int huffman_compress(mem* const buffer_r, mem* const buffer_w)//, const size_t bytes_input)
 {
     mem trie_buf;
+    mem buf_data;
     size_t n, node_count;
     size_t bytes_total; // size of output buffer. Temporary value used only when writing output file
     size_t size;
@@ -41,6 +42,7 @@ static int huffman_compress(mem* const buffer_r, mem* const buffer_w)//, const s
     memset(&st, 0, sizeof(st));
     memset(&heap, 0, sizeof(sort_data));
     memset(&trie_buf, 0, sizeof(trie_buf));
+    memset(&buf_data, 0, sizeof(buf_data));
 
     //set comparison function: freq ascending
     heap.cmp_func = asc_cmp_trie_freq;
@@ -48,16 +50,10 @@ static int huffman_compress(mem* const buffer_r, mem* const buffer_w)//, const s
     mem_seek(buffer_r, SEEK_READ_RESET);
 
     //count chars
-    n = 0;
-    do
+    while (MEM_GET_NEXT_VALUE(buffer_r, &c))
     {
-        if (MEM_GET_NEXT_VALUE(buffer_r, &c))
-        {
-            ++count[(size_t) c];
-        }
-
+        ++count[(size_t) c];
     }
-    while(++n < mem_size(buffer_r));
 
 #ifdef DEBUG
     for (n = 0; n <= UCHAR_MAX; ++n)
@@ -110,47 +106,40 @@ static int huffman_compress(mem* const buffer_r, mem* const buffer_w)//, const s
 
     n = mem_size(buffer_r);
 
-   // mem_set_char(buffer_w, 0, 0);
+    mem_seek(buffer_r, SEEK_READ_RESET);
 
     for(size_t i = 0; i < n; ++i)
     {
         if (MEM_GET_NEXT_VALUE(buffer_r, &c))
         {
-            mem_append_bits_and_shift(buffer_w, &st[c].bits, st[c].bits_count);
+            mem_append_bits_and_shift(&buf_data, &st[c].bits, st[c].bits_count);
         }
     }
 
-    MSG_ARG("bits_output = %lu", mem_size_in_bits(buffer_w));
+    MSG_ARG("bits_output = %lu", mem_size_in_bits(&buf_data));
 
-    size_t full_bytes_output = (mem_size_in_bits(buffer_w) / (sizeof(char) << 3));
-    unsigned char bits_offset = mem_size_in_bits(buffer_w) % (sizeof(char) << 3);
-    size_t bytes_output = full_bytes_output + ((bits_offset > 0) ? 1 : 0);
+    size_t bytes_output = mem_size(&buf_data);
 
     //write trie in buffer
     write_trie_buffer(&trie_buf, trie_root);
 
     //get total buffer size
     //bytes_total = sizeof(bytes_input) + sizeof(bytes_output) + (bytes_trie + 1) + bytes_output;
-    bytes_total = sizeof(size_t) + sizeof(bytes_output) + sizeof(bits_offset)+ mem_size(&trie_buf) + bytes_output;
-
-    //write total byte at beginning of buffer
-    mem_copy_and_shift(buffer_w, &bytes_total, sizeof(bytes_total));
+    //             EXPANDED SIZE   COMPRESSED DATA SIZE          TRIE             OUTPUT
+    bytes_total = sizeof(size_t) + sizeof(bytes_output) + mem_size(&trie_buf) + bytes_output;
 
     //write input size in output buffer
     size = mem_size(buffer_r);
-    mem_copy_and_shift(buffer_w, &size, sizeof(size));
+    MEM_APPEND_VALUE(buffer_w, &size);
 
     //write size of compressed data in output buffer
-    mem_copy_and_shift(buffer_w, &bytes_output, sizeof(bytes_output));
-
-    //write size of bits offset of compressed data size
-    mem_copy_and_shift(buffer_w, &bits_offset, sizeof(bits_offset));
+    MEM_APPEND_VALUE(buffer_w, &bytes_output);
 
     //write trie data in output buffer
-    mem_copy_and_shift(buffer_w, &trie_buf.mem, mem_size(&trie_buf));
+    mem_append_bits_and_shift(buffer_w, trie_buf.mem, mem_size_in_bits(&trie_buf));
 
     //copy compressed data to buffer
-    mem_copy_and_shift(buffer_w, buffer_w->mem, sizeof(*buffer_r) * bytes_output);
+    mem_append_bits_and_shift(buffer_w, buf_data.mem, mem_size_in_bits(&buf_data));
 
     trie_clean(trie_root);
 
@@ -162,7 +151,6 @@ static int huffman_expand(mem* const buffer_r, mem* const buffer_w)
     bin_trie_st st[UCHAR_MAX + 1];
     bin_trie_node *trie_root, *trie_node = NULL;
     size_t original_size, compressed_size;
-    unsigned short bits_offset;
     bit_t b;
 
     memset(&st, 0, sizeof(st));
@@ -177,34 +165,33 @@ static int huffman_expand(mem* const buffer_r, mem* const buffer_w)
         return 0;
     }
 
-    if(MEM_GET_NEXT_VALUE(buffer_r, &bits_offset) == 0)
-    {
-        return 0;
-    }
-
     trie_root = read_bin_trie(buffer_r);
 
     trie_symbol_table(trie_root, st);
 
     print_symbol_table(st);
 
-    mem_copy_and_shift(buffer_w, &original_size, sizeof(original_size));
-
     trie_node = trie_root;
 
-    while (trie_node != NULL);
+    while ((trie_node != NULL) && (original_size > 0))
     {
         if ((trie_node->childs[0] == NULL) && (trie_node->childs[1] == NULL))
         {
             MEM_APPEND_VALUE(buffer_w, &trie_node->c);
 
             trie_node = trie_root;
+
+            --original_size;
         }
         else
         {
             if (MEM_GET_NEXT_BIT(buffer_r, &b))
             {
                 trie_node = trie_node->childs[b];
+            }
+            else
+            {
+                break;
             }
         }
     }
@@ -215,7 +202,7 @@ static int huffman_expand(mem* const buffer_r, mem* const buffer_w)
 int main(int argc, char *argv[])
 {
     FILE *fp;
-    size_t n, size;
+    size_t n;
     mem buffer_r, buffer_w;
     char *file_input, *file_output;
 
@@ -261,9 +248,9 @@ int main(int argc, char *argv[])
     rewind(fp);
 
     //read all file
-    n = mem_read_file(&buffer_r, fp, buffer_size + 1);
+    n = mem_read_file(&buffer_r, fp, buffer_size);
 
-    if (!feof(fp))
+    if (n != buffer_size)
     {
         printf("Error: there are chars left: bytes read = %zu, buffer size = %zu\n", n, buffer_size);
         return 1;
@@ -283,10 +270,8 @@ int main(int argc, char *argv[])
         printf("Error: fail to open file '%s'\n", file_output);
     }
 
-    size = MEM_GET_NEXT_VALUE(&buffer_w, &size);
-
     //write output with size stored in fist size_t value in buffer
-    fwrite(buffer_w.mem + sizeof(size), sizeof(*buffer_w.mem), size, fp);
+    fwrite(buffer_w.mem, 1, mem_size(&buffer_w), fp);
 
     fclose(fp);
 

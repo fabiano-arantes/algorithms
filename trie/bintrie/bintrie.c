@@ -71,38 +71,24 @@ static int trie_symbol_table_(const bin_trie_node* const n, bin_trie_st st[UCHAR
         return 0;
     }
 
-    static unsigned long depth = 0;
-    static unsigned long max_depth = 0;
-
-    ++depth;
-
-    if (depth > max_depth)
-    {
-        max_depth = depth;
-    }
-
     if ((n->childs[0] == NULL) && (n->childs[1] == NULL))
     {
         unsigned char char_bits[17];
 
         int_to_bits(bits, bits_count, char_bits);
 
-        MSG_ARG("creating symbol table node: c = '%c', bits = %s, bit_count = %d", n->c, char_bits, bits_count);
+        MSG_ARG("creating symbol table node: c = '%c' [%u], bits = %s, bit_count = %d", n->c, n->c, char_bits, bits_count);
 
         st[(size_t)n->c].c = n->c;
         st[(size_t)n->c].bits = bits;
         st[(size_t)n->c].bits_count = bits_count;
-
-        --depth;
 
         return 1;
     }
 
     trie_symbol_table_(n->childs[0], st, (bits << 1), bits_count + 1);
 
-    trie_symbol_table_(n->childs[1], st, (bits << 1) | 1, bits_count + 1);
-
-    --depth;
+    trie_symbol_table_(n->childs[1], st, (bits | (1 << bits_count)), bits_count + 1);
 
     return 1;
 }
@@ -132,7 +118,7 @@ void print_symbol_table(bin_trie_st st[UCHAR_MAX])
 
         int_to_bits(st[i].bits, st[i].bits_count, bits);
 
-        MSG_ARG("c = '%c', bits_count = %d, bits = %s", st[i].c, st[i].bits_count, bits);
+        MSG_ARG("c = '%c' [%u], bits_count = %d, bits = %s", st[i].c, st[i].c, st[i].bits_count, bits);
     }
 }
 

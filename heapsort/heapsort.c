@@ -6,12 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct
-{
-    unsigned bit: 3;
- //   void *pointer;
-}pointer_t;
-
 static int heap_sink(sort_data *h)
 {
     MSG("Sinking heap");
@@ -23,35 +17,32 @@ static int heap_sink(sort_data *h)
         return 0;
     }
 
-    pointer_t ab;
-
-    ab.bit = 7;
-
     size_t p = 1;
     size_t c;
-    void * v1;
-    void * v2;
 
     while ((p << 1) <= h->size)//mem_size(&h->mem))
     {
-        c = p << 1;
+        size_t sizeof_pointer = sizeof(pointer_t) << 3;
+        pointer_t p1;
+        pointer_t p2;
 
+        c = p << 1;
 
         if ((c + 1) <= h->size) //mem_size(&h->mem))
         {
-            v1 = *(void **)mem_get_obj_address(&h->mem, c - 1, sizeof(void *));
-            v2 = *(void **)mem_get_obj_address(&h->mem, c, sizeof(void *));
+            mem_get_bits_at(&h->mem, (c - 1) * sizeof_pointer, &p1, sizeof_pointer);
+            mem_get_bits_at(&h->mem, c * sizeof_pointer,  &p2, sizeof_pointer);
 
-            if (h->cmp_func(v1, v2) == 0)
+            if (h->cmp_func(p1.pointer, p2.pointer) == 0)
             {
                 ++c;
             }
         }
 
-        v1 = *(void **)mem_get_obj_address(&h->mem, p - 1, sizeof(void *));
-        v2 = *(void **)mem_get_obj_address(&h->mem, c - 1, sizeof(void *));
+        mem_get_bits_at(&h->mem, (p - 1) * sizeof_pointer, &p1, sizeof_pointer);
+        mem_get_bits_at(&h->mem, (c - 1) * sizeof_pointer, &p2, sizeof_pointer);
 
-        if(h->cmp_func(v1, v2) == 0)
+        if (h->cmp_func(p1.pointer, p2.pointer) == 0)
         {
             mem_exch(&h->mem, p - 1, c - 1);
         }
@@ -72,19 +63,20 @@ static void heap_swim(sort_data* const h)
 
     size_t c = h->size;//mem_size(&h->mem); //child index
     size_t p; //parent index
-    void * v1;
-    void * v2;
+    size_t sizeof_pointer = sizeof(pointer_t) << 3;
 
     while (c > 1)
     {
         //get parent index
         p = c >> 1;
 
-        v1 = *(void **)mem_get_obj_address(&h->mem, p - 1, sizeof(void *));
-        v2 = *(void **)mem_get_obj_address(&h->mem, c - 1, sizeof(void *));
+        pointer_t v1, v2;
+
+        mem_get_bits_at(&h->mem, (p - 1) * sizeof_pointer, &v1, sizeof_pointer);
+        mem_get_bits_at(&h->mem, (c - 1) * sizeof_pointer, &v2, sizeof_pointer);
 
         //check if values positions are valid
-        if (h->cmp_func(v1, v2))
+        if (h->cmp_func(v1.pointer, v2.pointer))
         {
             //valid positions
             break;
@@ -114,15 +106,17 @@ int heap_put(sort_data* const h, const void * const value)
         return 0;
     }
 
+    pointer_t p = {value};
+
     //put new value at last position of heap tree
-    MEM_APPEND_VALUE(&h->mem, &value);
+    MEM_APPEND_VALUE(&h->mem, &p);
 
     ++h->size;
 
     //apply swim
     heap_swim(h);
 
-    return h->size;//mem_size(&h->mem);
+    return h->size;
 }
 
 void* heap_remove_top(sort_data* const h)
@@ -140,8 +134,8 @@ void* heap_remove_top(sort_data* const h)
     mem_seek(&h->mem, SEEK_READ_RESET);
 
     //get top value from memory
-    if (MEM_GET_NEXT_VALUE(&h->mem, &ptop)) //second must address of address because heap deals with
-    {                                      //memory addresses in mem
+    if (MEM_GET_NEXT_VALUE(&h->mem, &ptop))
+    {
         MSG_ARG("Top object popped: [%p]", ptop);
 
         --h->size;

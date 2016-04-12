@@ -7,10 +7,14 @@
 
 typedef unsigned long slot_t;
 
+#define MEM_APPEND_VALUE(mem, value) mem_append_bits_and_shift(mem, (void *)value, sizeof(*value) << 3)
+#define MEM_APPEND_BIT(mem, value) temp__ = value; mem_append_bits_and_shift(mem, &temp__, 1)
+#define MEM_GET_LAST_VALUE(mem, value) mem_get_last_bits(mem, value, sizeof(*value) << 3)
+#define MEM_GET_LAST_BIT(mem, value) mem_get_last_bits(mem, value, 1)
 #define MEM_GET_NEXT_VALUE(mem, value) mem_get_next_bits(mem, value, sizeof(*value) << 3)
 #define MEM_GET_NEXT_BIT(mem, value) mem_get_next_bits(mem, value, 1)
-#define MEM_APPEND_VALUE(mem, value) mem_append_bits_and_shift(mem, (void *)value, sizeof(*value) << 3)
-#define MEM_APPEND_BIT(mem, value) unsigned char v = value; mem_append_bits_and_shift(mem, &v, 1)
+
+static slot_t temp__;
 
 typedef enum
 {
@@ -26,44 +30,50 @@ typedef enum
 
 typedef struct
 {
+    const void* const pointer;
+}pointer_t;
+
+typedef struct
+{
     slot_t *mem;
-    size_t size;
-    size_t max_size;
+    size_t used_slots;
+    size_t max_slots;
     size_t pos_r;
-    unsigned short size_b;
+    unsigned short bits_offset;
     unsigned short pos_r_b;
 }mem;
 
-void* mem_copy_and_shift(mem* const m, const void* const value, size_t size_bytes);
-
-int mem_shrink(mem* const n, size_t size_bits);
-
 void mem_append_bits_and_shift(mem* const m, void* const bits, size_t size_bits);
 
-int mem_get_next_bits(mem* const m, void* bits, size_t size);
+int mem_get_bits(mem* const m, void* const bits, size_t size_bits);
+
+int mem_get_bits_at(mem* const m, size_t position_bits, void* const bits, size_t size_bits);
+
+int mem_get_last_bits(mem* const m, void* bits, size_t size_bits);
+
+int mem_get_next_bits(mem* const m, void* const bits, size_t size_bits);
 
 void mem_seek(mem* const m, seek_t p);
 
+int mem_shrink(mem* const n, size_t size_bits);
+
+size_t mem_size(const mem* const m);
+
+size_t mem_size_in_bits(const mem* const m);
+
+
 static inline void mem_exch (mem *m, size_t i, size_t j)
 {
-    void *aux = malloc(sizeof(slot_t));
-    memcpy(aux, m->mem + i, sizeof(slot_t));
-    memcpy(m->mem + i, m->mem + j, sizeof(slot_t));
-    memcpy(m->mem + j, aux, sizeof(slot_t));
-    free(aux);
-}
+    if (i == j)
+    {
+        return;
+    }
 
-static inline size_t mem_size(const mem* const m)
-{
-    return m->size;
+    slot_t aux;
+    memmove(&aux, m->mem + i, sizeof(slot_t));
+    memmove(m->mem + i, m->mem + j, sizeof(slot_t));
+    memmove(m->mem + j, &aux, sizeof(slot_t));
 }
-
-static inline size_t mem_size_in_bits(const mem* const m)
-{
-    return m->size * (sizeof(m->mem) << 3) + m->size_b;
-}
-
-void* mem_get_obj_address(const mem* const m, size_t index, size_t size);
 
 static inline size_t mem_read_file(mem* const m, FILE* const fp, size_t size)
 {
@@ -73,9 +83,15 @@ static inline size_t mem_read_file(mem* const m, FILE* const fp, size_t size)
         return 0;
     }
 
-    size_t n = fread(mem, sizeof(void*), size, fp);
+    size_t n = fread(mem, 1, size, fp);
+    if (n != size)
+    {
+        printf("Error: amount of bytes read from file smaller than expected");
 
-    mem_copy_and_shift(m, mem, size);
+        return 0;
+    }
+
+    mem_append_bits_and_shift(m, mem, size << 3);
 
     free(mem);
 
