@@ -1,158 +1,235 @@
+/* *****************************************************************************
+ *  Name:    Fabiano Arantes
+ *  NetID:   fabiano.arantes
+ *  Precept: P00
+ *
+ *  Description:  Percolation
+ *
+ **************************************************************************** */
+
+import edu.princeton.cs.algs4.WeightedQuickUnionUF;
 
 public class Percolation {
-    private boolean[][] sites;           //sites matrix
-    private WeightedQuickUnionUF qf;     //quick find object
-    private WeightedQuickUnionUF qfFull; //quick find object for 'full' test
-    private int maxIndex;                //max index
-    private int maxIndexQf;              //max index in quick find data structure
- 
-    // create N-by-N grid, with all sites blocked
-    public Percolation(int N) {
-        if (N <= 0) { 
-            throw new IllegalArgumentException("Invalid grid size");
-        }
-        
-        //define limits
-        maxIndex = N - 1;
-        maxIndexQf = N * N + 1;
-        
-        //instantiate objects
-        sites = new boolean[N][N];
-        qf = new WeightedQuickUnionUF(maxIndexQf + 1);
-        qfFull = new WeightedQuickUnionUF(maxIndexQf); 
-    }
-    
-    private void checkBounds(int i, int j) {
-        if ((i < 1) || (j < 1) || (i > (maxIndex + 1)) || (j > (maxIndex + 1))) { 
-            throw new IndexOutOfBoundsException("point (" + i + ", " + j 
-                                                    + ") out of bounds");
-        }
-    }
-    
-    //calculate quick find index for the given point
-    private int qfIndex(int y, int x) {
-        return x + y * (maxIndex + 1) + 1;
-    }
-    
-    // open site (row i, column j) if it is not open already
-    public void open(int i, int j) {
-        //check bounds
-        checkBounds(i, j);
-        
-        //change dimension
-        int y = i - 1;
-        int x = j - 1;
+    private final int topSitePosition; // position of top site
+    private final int bottomSitePosition; // position of bottom site
 
-        //check if it's already open
-        if (sites[y][x])
-        {
+    private final int n; // grid size
+    private int openSitesCount; // count open sites
+    private boolean[] openSites; // open sites flags
+    private final WeightedQuickUnionUF ufCheckPercolation; // union-find object
+    private final WeightedQuickUnionUF ufCheckIsFull; // uf object wit bottom site
+
+    // create n-by-n grid, with all sites blocked
+    public Percolation(int n) {
+
+        if (n <= 0)
+            throw new java.lang.IllegalArgumentException("Illegal n value: " + n);
+
+        this.n = n;
+        this.topSitePosition = n * n;
+        this.bottomSitePosition = topSitePosition + 1;
+        this.openSitesCount = 0;
+        this.openSites = new boolean[n * n + 2];
+        this.ufCheckPercolation = new WeightedQuickUnionUF(n * n + 2);
+        this.ufCheckIsFull = new WeightedQuickUnionUF(n * n + 1);
+
+        this.openSites[topSitePosition] = true;
+        this.openSites[bottomSitePosition] = true;
+
+    }
+
+    // validate row and col values
+    private void validate(int row, int col) {
+
+        if ((row < 1) || (row > this.n))
+            throw new java.lang.IllegalArgumentException("Illegal row value: " + row);
+
+        if ((col < 1) || (col > this.n))
+            throw new java.lang.IllegalArgumentException("Illegal col value: " + col);
+
+    }
+
+    // calculates uf array position
+    private int getP(int row, int col) {
+        return (row - 1) * this.n + (col - 1);
+    }
+
+    // makes unions
+    private void union(int p, int q) {
+        if (!openSites[p] || !openSites[q])
             return;
-        }
-        
-        //get index inside quick find
-        int qfp = qf.find(qfIndex(y, x));
-        int qfpFull = qfFull.find(qfIndex(y, x));
-        
-        //open site
-        sites[y][x] = true;
-        
-        //check if point is at first row
-        if (y == 0)
-        {
-            qf.union(0, qfp);
-            qfFull.union(0, qfpFull);
-        }
-        
-        if (y == maxIndex)
-        {
-            qf.union(maxIndexQf, qfp);
-        }
- 
-        //check if upper point is open
-        if ((y > 0) && sites[y - 1][x])
-        {
-            qf.union(qfIndex(y - 1, x), qfp);
-            qfFull.union(qfIndex(y - 1, x), qfpFull);
-        }
-        
-        //check if lower point is open
-        if ((y < maxIndex) && sites[y + 1][x])
-        {
-            qf.union(qfIndex(y + 1, x), qfp);
-            qfFull.union(qfIndex(y + 1, x), qfpFull);
-        }
-        
-        //check if point at right is open
-        if ((x < maxIndex) && sites[y][x + 1])
-        {
-            qf.union(qfIndex(y, x + 1), qfp);
-            qfFull.union(qfIndex(y, x + 1), qfpFull);
-        }
-        
-        //check if point at left is open
-        if ((x > 0) && sites[y][x - 1])
-        {
-            qf.union(qfIndex(y, x - 1), qfp);
-            qfFull.union(qfIndex(y, x - 1), qfpFull);
-        }
+
+        ufCheckPercolation.union(p, q);
+
+        if ((p != bottomSitePosition) && (q != bottomSitePosition))
+            ufCheckIsFull.union(p, q);
     }
-    
-    // is site (row i, column j) open?
-    public boolean isOpen(int i, int j) {
-        //check bounds
-        checkBounds(i, j);
-        
-        return sites[i - 1][j - 1];
+
+    // open site (row, col) if it is not open already
+    public void open(int row, int col) {
+
+        validate(row, col);
+
+        // get row-col position in uf array
+        int p = getP(row, col);
+
+        // checks if is already open
+        if (openSites[p])
+            return;
+
+        // open new site
+        openSites[p] = true;
+        ++openSitesCount;
+
+        // check top
+        if (row == 1)
+            union(topSitePosition, p);
+        else
+            union(p, getP(row - 1, col));
+
+        if (row == n)
+            union(p, bottomSitePosition);
+        else
+            union(p, getP(row + 1, col));
+
+        // check left neighbor
+        if (col > 1)
+            union(p, getP(row, col - 1));
+
+        // check right neighbor
+        if (col < n)
+            union(p, getP(row, col + 1));
     }
-    
-    // is site (row i, column j) full?
-    public boolean isFull(int i, int j) {
-        //check bounds
-        checkBounds(i, j);
-        
-        return (sites[i - 1][j - 1] && qfFull.connected(qfIndex(i - 1, j - 1), 0));
+
+    // is site (row, col) open?
+    public boolean isOpen(int row, int col) {
+        validate(row, col);
+        return openSites[getP(row, col)];
     }
- 
+
+    // is site (row, col) full?
+    public boolean isFull(int row, int col) {
+        validate(row, col);
+        return ufCheckIsFull.connected(topSitePosition, getP(row, col));
+    }
+
+    // number of open sites
+    public int numberOfOpenSites() {
+        return openSitesCount;
+    }
+
     // does the system percolate?
     public boolean percolates() {
-        /*int rootIndex = qf.find(0);
-        
-        for (int j = 0; j <= maxIndex; ++j)
-        {
-            if (sites[maxIndex][j])
-            {
-                if (qf.connected(rootIndex, qfIndex(maxIndex, j))) {
-                    return true;
-                }
-            }
-        }
-        return false;*/
-        
-        return qf.connected(maxIndexQf, 0);
+        return ufCheckPercolation.connected(topSitePosition, bottomSitePosition);
     }
 
     // test client (optional)
     public static void main(String[] args) {
- 
-        //Percolation p = new Percolation(3);   
-        Percolation p = new Percolation(1);   
-        
-        //p.open(0, 0);
-        //p.open(4, 4);
-        p.open(1, 1);
-        StdOut.println("Percolation: " + p.percolates());  
-        
-        /*p.open(2, 1);
-        StdOut.println("Percolation: " + p.percolates());        
-        p.open(1, 2);
-        StdOut.println("Percolation: " + p.percolates());
-        p.open(1, 3);
-        StdOut.println("Percolation: " + p.percolates());
-        p.open(3, 2);
-        StdOut.println("Percolation: " + p.percolates());
-        p.open(3, 3);
-        StdOut.println("Percolation: " + p.percolates());       
-        p.open(2, 2);
-        StdOut.println("Percolation: " + p.percolates());  */  
+
+        boolean exceptionHappened = false;
+        final int n = 10;
+        Percolation p;
+
+        // ------------- check negative n --------------------
+
+        try {
+            p = new Percolation(-1);
+            p.percolates();
+        }
+        catch (java.lang.IllegalArgumentException e) {
+            exceptionHappened = true;
+        }
+
+        assert (exceptionHappened);
+
+        // ---------------------------------------------------
+
+        exceptionHappened = false;
+        p = new Percolation(n);
+
+        // --------- check row and col lesser than 0 ---------
+
+        try {
+            p.open(-1, -1);
+        }
+        catch (java.lang.IllegalArgumentException e) {
+            exceptionHappened = true;
+        }
+
+        assert (exceptionHappened);
+        exceptionHappened = false;
+
+        try {
+            p.isOpen(-1, -1);
+        }
+        catch (java.lang.IllegalArgumentException e) {
+            exceptionHappened = true;
+        }
+
+        assert (exceptionHappened);
+
+        // ---------------------------------------------------
+
+        // --------- check row and col bigger than n ---------
+
+        try {
+            p.open(n + 1, n + 1);
+        }
+        catch (java.lang.IllegalArgumentException e) {
+            exceptionHappened = true;
+        }
+
+        assert (exceptionHappened);
+        exceptionHappened = false;
+
+        try {
+            p.isOpen(n + 1, n + 1);
+        }
+        catch (java.lang.IllegalArgumentException e) {
+            exceptionHappened = true;
+        }
+
+        assert (exceptionHappened);
+
+        // ---------------------------------------------------
+
+
+        // --------------- must not percolate ----------------
+
+        for (int ii = 1; ii < n; ++ii) {
+            p.open(ii, 1);
+        }
+
+        assert (!p.percolates()) : "It should not percolate!";
+
+        // ---------------------------------------------------
+
+        // --------------- must percolate ----------------
+
+        p.open(10, 1);
+        assert (p.percolates()) : "It should percolate!";
+
+        // ---------------------------------------------------
+
+        // --------------- must not be full ------------------
+
+        p.open(10, 3);
+        assert (!p.isFull(10, 3)) : "It shouldn't be full!";
+
+        // ---------------------------------------------------
+
+        // ----------------- must be full --------------------
+
+        p.open(10, 2);
+        assert (p.isFull(10, 3)) : "It should be full!";
+
+        // ---------------------------------------------------
+
+        // ----------------- check open sites ----------------
+
+        assert (p.numberOfOpenSites() == 12) : "It should be 12!";
+
+        // ---------------------------------------------------
+
     }
 }
